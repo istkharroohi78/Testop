@@ -2,9 +2,9 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
 from config import BOT_USERNAME
-from AnieXMusic.core.call import Anie
-from AnieXMusic.utils.database import get_assistant
-from AnieXMusic.utils.stream.stream import stream
+from AviaxMusic.core.call import Anie
+from AviaxMusic.utils.database import get_assistant
+from AviaxMusic.utils.stream.stream import stream
 
 AUTO_PLAY = {}
 
