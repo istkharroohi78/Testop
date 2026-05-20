@@ -528,7 +528,7 @@ class YouTubeAPI:
                     result = await download_with_requests(video_url, filepath, headers)
                     return result
                     
-               logger.error(f"API Error: {videoData.get('message', 'Unknown error')}")
+                logger.error(f"API Error: {videoData.get('message', 'Unknown error')}")
                 return None
                 
             except Exception as e:
