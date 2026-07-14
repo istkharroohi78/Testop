@@ -19,7 +19,7 @@ MONGO_DB_URI = getenv("MONGO_DB_URI", None)
 DURATION_LIMIT_MIN = int(getenv("DURATION_LIMIT", 18000))
 
 # Chat id of a group for logging bot's activities
-LOG_GROUP_ID = int(getenv("LOG_GROUP_ID", -1002848177467))
+LOG_GROUP_ID = int(getenv("LOG_GROUP_ID", -1003971803767 ))
 
 # Get this value from @MissRose_Bot on Telegram by /id
 OWNER_ID = int(getenv("OWNER_ID", None))
@@ -36,7 +36,7 @@ YT_API_KEY = getenv("YT_API_KEY" , None ) ## Your API key like: xbit_10000000xx0
 
 UPSTREAM_REPO = getenv(
     "UPSTREAM_REPO",
-    "https://github.com/Royalsongmusic/Queenmusic12",
+    "https://github.com/istkharroohi78/Testop",
 )
 UPSTREAM_BRANCH = getenv("UPSTREAM_BRANCH", "master")
 GIT_TOKEN = getenv(
