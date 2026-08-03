@@ -1,6 +1,5 @@
 import math
 from pyrogram.types import InlineKeyboardButton
-from AviaxMusic import app
 from AviaxMusic.utils.formatters import time_to_seconds
 
 
@@ -17,9 +16,6 @@ def track_markup(_, videoid, user_id, channel, fplay):
             ),
         ],
         [
-            InlineKeyboardButton(
-                text="🎁 Get Rewards", url=f"https://t.me/{app.username}?startgroup=true",
-            ),
             InlineKeyboardButton(
                 text=_["CLOSE_BUTTON"],
                 callback_data=f"forceclose {videoid}|{user_id}",
@@ -64,9 +60,6 @@ def stream_markup_timer(_, chat_id, played, dur):
             ),
         ],
         [
-            #InlineKeyboardButton(
-                text="🎁 Get Rewards", url=f"https://t.me/{app.username}?startgroup=true",
-            ),
             InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")
         ],
     ]
@@ -83,9 +76,6 @@ def stream_markup(_, chat_id):
             InlineKeyboardButton(text="♦️", callback_data=f"ADMIN Stop|{chat_id}")
         ],
         [
-            InlineKeyboardButton(
-                text="🎁 Get Rewards", url=f"https://t.me/{app.username}?startgroup=true",
-            ),
             InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")
         ],
     ]
