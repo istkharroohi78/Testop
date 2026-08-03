@@ -1,146 +1,146 @@
-import asyncio
-import os
-import random
-import re
-import textwrap
-import aiofiles
-import aiohttp
-from PIL import (Image, ImageDraw, ImageEnhance, ImageFilter,
-                 ImageFont, ImageOps)
-from youtubesearchpython.__future__ import VideosSearch
-import numpy as np
-from config import YOUTUBE_IMG_URL
+import math
+from pyrogram.types import InlineKeyboardButton
+from AviaxMusic.utils.formatters import time_to_seconds
 
+def track_markup(_, videoid, user_id, channel, fplay):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=_["P_B_1"],
+                callback_data=f"MusicStream {videoid}|{user_id}|a|{channel}|{fplay}",
+            ),
+            InlineKeyboardButton(
+                text=_["P_B_2"],
+                callback_data=f"MusicStream {videoid}|{user_id}|v|{channel}|{fplay}",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text=_["CLOSE_BUTTON"],
+                callback_data=f"forceclose {videoid}|{user_id}",
+            ),
+        ],
+    ]
+    return buttons
 
-def make_col():
-    return (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+def stream_markup_timer(_, chat_id, played, dur):
+    played_sec = time_to_seconds(played)
+    duration_sec = time_to_seconds(dur)
+    
+    if duration_sec == 0:
+        percentage = 0
+    else:
+        percentage = (played_sec / duration_sec) * 100
+        
+    umm = math.floor(percentage)
 
+    bar_states = [
+        "⚚‎—————————", "—⚚‎————————", "——⚚‎———————", "———⚚‎——————",
+        "————⚚‎—————", "—————⚚‎————", "——————⚚‎———", "———————⚚‎——",
+        "————————⚚‎—", "—————————⚚‎"
+    ]
+    bar = bar_states[min(umm // 10, len(bar_states) - 1)]
 
-def changeImageSize(maxWidth, maxHeight, image):
-    widthRatio = maxWidth / image.size[0]
-    heightRatio = maxHeight / image.size[1]
-    newWidth = int(widthRatio * image.size[0])
-    newHeight = int(heightRatio * image.size[1])
-    newImage = image.resize((newWidth, newHeight))
-    return newImage
+    buttons = [
+        [
+            InlineKeyboardButton(text="❤️‍🔥", callback_data=f"ADMIN Resume|{chat_id}"),
+            InlineKeyboardButton(text="🪼", callback_data=f"ADMIN Pause|{chat_id}"),
+            InlineKeyboardButton(text="🪫", callback_data=f"ADMIN Replay|{chat_id}"),
+            InlineKeyboardButton(text="👻", callback_data=f"ADMIN Skip|{chat_id}"),
+            InlineKeyboardButton(text="♦️", callback_data=f"ADMIN Stop|{chat_id}"),
+        ],
+        [
+            InlineKeyboardButton(
+                text=f"{played} {bar} {dur}",
+                callback_data="GetTimer",
+            ),
+        ],
+        [
+            InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close"),
+        ],
+    ]
+    return buttons
 
-def truncate(text):
-    list = text.split(" ")
-    text1 = ""
-    text2 = ""    
-    for i in list:
-        if len(text1) + len(i) < 30:        
-            text1 += " " + i
-        elif len(text2) + len(i) < 30:       
-            text2 += " " + i
+# Yeh raha wo function jo miss ho gaya tha
+def stream_markup(_, chat_id):
+    buttons = [
+        [
+            InlineKeyboardButton(text="❤️‍🔥", callback_data=f"ADMIN Resume|{chat_id}"),
+            InlineKeyboardButton(text="🪼", callback_data=f"ADMIN Pause|{chat_id}"),
+            InlineKeyboardButton(text="🪫", callback_data=f"ADMIN Replay|{chat_id}"),
+            InlineKeyboardButton(text="👻", callback_data=f"ADMIN Skip|{chat_id}"),
+            InlineKeyboardButton(text="♦️", callback_data=f"ADMIN Stop|{chat_id}")
+        ],
+        [
+            InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close"),
+        ],
+    ]
+    return buttons
 
-    text1 = text1.strip()
-    text2 = text2.strip()     
-    return [text1,text2]
+def playlist_markup(_, videoid, user_id, ptype, channel, fplay):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=_["P_B_1"],
+                callback_data=f"AyushPlaylists {videoid}|{user_id}|{ptype}|a|{channel}|{fplay}",
+            ),
+            InlineKeyboardButton(
+                text=_["P_B_2"],
+                callback_data=f"AyushPlaylists {videoid}|{user_id}|{ptype}|v|{channel}|{fplay}",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text=_["CLOSE_BUTTON"],
+                callback_data=f"forceclose {videoid}|{user_id}",
+            ),
+        ],
+    ]
+    return buttons
 
-# 🔴 YAHAN NAME CHANGE KIYA HAI 'gen_thumb' 🔴
-async def gen_thumb(videoid):
-    try:
-        if os.path.isfile(f"cache/{videoid}.jpg"):
-            return f"cache/{videoid}.jpg"
+def livestream_markup(_, videoid, user_id, mode, channel, fplay):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=_["P_B_3"],
+                callback_data=f"LiveStream {videoid}|{user_id}|{mode}|{channel}|{fplay}",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text=_["CLOSE_BUTTON"],
+                callback_data=f"forceclose {videoid}|{user_id}",
+            ),
+        ],
+    ]
+    return buttons
 
-        url = f"https://www.youtube.com/watch?v={videoid}"
-        if 1==1:
-            results = VideosSearch(url, limit=1)
-            for result in (await results.next())["result"]:
-                try:
-                    title = result["title"]
-                    title = re.sub("\W+", " ", title)
-                    title = title.title()
-                except:
-                    title = "Unsupported Title"
-                try:
-                    duration = result["duration"]
-                except:
-                    duration = "Unknown Mins"
-                thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-                try:
-                    views = result["viewCount"]["short"]
-                except:
-                    views = "Unknown Views"
-                try:
-                    channel = result["channel"]["name"]
-                except:
-                    channel = "Unknown Channel"
-
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"http://img.youtube.com/vi/{videoid}/maxresdefault.jpg") as resp:
-                    if resp.status == 200:
-                        f = await aiofiles.open(
-                            f"cache/thumb{videoid}.jpg", mode="wb"
-                        )
-                        await f.write(await resp.read())
-                        await f.close()
-
-            youtube = Image.open(f"cache/thumb{videoid}.jpg")
-            image1 = changeImageSize(1280, 720, youtube)
-            image2 = image1.convert("RGBA")
-            background = image2.filter(filter=ImageFilter.BoxBlur(30))
-            enhancer = ImageEnhance.Brightness(background)
-            background = enhancer.enhance(0.6)
-            image2 = background
-                                                                                            
-            circle = Image.open("AviaxMusic/assets/circle.png")
-
-            im = circle
-            im = im.convert('RGBA')
-            color = make_col()
-
-            data = np.array(im)
-            red, green, blue, alpha = data.T
-
-            white_areas = (red == 255) & (blue == 255) & (green == 255)
-            data[..., :-1][white_areas.T] = color
-
-            im2 = Image.fromarray(data)
-            circle = im2
-
-            image3 = image1.crop((280,0,1000,720))
-            lum_img = Image.new('L', [720,720] , 0)
-            draw = ImageDraw.Draw(lum_img)
-            draw.pieslice([(0,0), (720,720)], 0, 360, fill = 255, outline = "white")
-            img_arr = np.array(image3)
-            lum_img_arr = np.array(lum_img)
-            final_img_arr = np.dstack((img_arr,lum_img_arr))
-            image3 = Image.fromarray(final_img_arr)
-            image3 = image3.resize((600,600))
-            
-
-            image2.paste(image3, (50,70), mask = image3)
-            image2.paste(circle, (0,0), mask = circle)
-
-            font1 = ImageFont.truetype('AviaxMusic/assets/font.ttf', 30)
-            font2 = ImageFont.truetype('AviaxMusic/assets/font2.ttf', 70)
-            font3 = ImageFont.truetype('AviaxMusic/assets/font2.ttf', 40)
-            font4 = ImageFont.truetype('AviaxMusic/assets/font2.ttf', 35)
-
-            image4 = ImageDraw.Draw(image2)
-            
-            image4.text((10, 10), "AVIAX MUSIC", fill="white", font = font1, align ="left") 
-            image4.text((670, 150), "NOW PLAYING", fill="white", font = font2, stroke_width=2, stroke_fill="white", align ="left") 
-
-            title1 = truncate(title)
-            image4.text((670, 300), text=title1[0], fill="white", stroke_width=1, stroke_fill="white",font = font3, align ="left") 
-            image4.text((670, 350), text=title1[1], fill="white", stroke_width=1, stroke_fill="white", font = font3, align ="left") 
-
-            views = f"Views : {views}"
-            duration = f"Duration : {duration} Mins"
-            channel = f"Channel : {channel}"
-
-            image4.text((670, 450), text=views, fill="white", font = font4, align ="left") 
-            image4.text((670, 500), text=duration, fill="white", font = font4, align ="left") 
-            image4.text((670, 550), text=channel, fill="white", font = font4, align ="left")
-            
-            image2 = ImageOps.expand(image2,border=20,fill=make_col())
-            image2 = image2.convert('RGB')
-            image2.save(f"cache/{videoid}.jpg")
-            file = f"cache/{videoid}.jpg"
-            return file
-    except Exception as e:
-        print(e)
-        return YOUTUBE_IMG_URL
+def slider_markup(_, videoid, user_id, query, query_type, channel, fplay):
+    query = f"{query[:20]}"
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=_["P_B_1"],
+                callback_data=f"MusicStream {videoid}|{user_id}|a|{channel}|{fplay}",
+            ),
+            InlineKeyboardButton(
+                text=_["P_B_2"],
+                callback_data=f"MusicStream {videoid}|{user_id}|v|{channel}|{fplay}",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="◁",
+                callback_data=f"slider B|{query_type}|{query}|{user_id}|{channel}|{fplay}",
+            ),
+            InlineKeyboardButton(
+                text=_["CLOSE_BUTTON"],
+                callback_data=f"forceclose {query}|{user_id}",
+            ),
+            InlineKeyboardButton(
+                text="▷",
+                callback_data=f"slider F|{query_type}|{query}|{user_id}|{channel}|{fplay}",
+            ),
+        ],
+    ]
+    return buttons
