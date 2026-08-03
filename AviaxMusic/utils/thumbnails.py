@@ -38,7 +38,8 @@ def truncate(text):
     text2 = text2.strip()     
     return [text1,text2]
 
-async def get_thumb(videoid):
+# 🔴 YAHAN NAME CHANGE KIYA HAI 'gen_thumb' 🔴
+async def gen_thumb(videoid):
     try:
         if os.path.isfile(f"cache/{videoid}.jpg"):
             return f"cache/{videoid}.jpg"
@@ -84,10 +85,8 @@ async def get_thumb(videoid):
             background = enhancer.enhance(0.6)
             image2 = background
                                                                                             
-            # ✅ Path changed to AviaxMusic
             circle = Image.open("AviaxMusic/assets/circle.png")
 
-            # changing circle color
             im = circle
             im = im.convert('RGBA')
             color = make_col()
@@ -100,7 +99,6 @@ async def get_thumb(videoid):
 
             im2 = Image.fromarray(data)
             circle = im2
-            # done
 
             image3 = image1.crop((280,0,1000,720))
             lum_img = Image.new('L', [720,720] , 0)
@@ -116,7 +114,6 @@ async def get_thumb(videoid):
             image2.paste(image3, (50,70), mask = image3)
             image2.paste(circle, (0,0), mask = circle)
 
-            # ✅ Fonts path changed to AviaxMusic
             font1 = ImageFont.truetype('AviaxMusic/assets/font.ttf', 30)
             font2 = ImageFont.truetype('AviaxMusic/assets/font2.ttf', 70)
             font3 = ImageFont.truetype('AviaxMusic/assets/font2.ttf', 40)
@@ -124,16 +121,13 @@ async def get_thumb(videoid):
 
             image4 = ImageDraw.Draw(image2)
             
-            # ✅ Watermark changed to AVIAX MUSIC
             image4.text((10, 10), "AVIAX MUSIC", fill="white", font = font1, align ="left") 
             image4.text((670, 150), "NOW PLAYING", fill="white", font = font2, stroke_width=2, stroke_fill="white", align ="left") 
 
-            # title
             title1 = truncate(title)
             image4.text((670, 300), text=title1[0], fill="white", stroke_width=1, stroke_fill="white",font = font3, align ="left") 
             image4.text((670, 350), text=title1[1], fill="white", stroke_width=1, stroke_fill="white", font = font3, align ="left") 
 
-            # description
             views = f"Views : {views}"
             duration = f"Duration : {duration} Mins"
             channel = f"Channel : {channel}"
