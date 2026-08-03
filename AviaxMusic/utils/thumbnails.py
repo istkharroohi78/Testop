@@ -1,168 +1,152 @@
+import asyncio
 import os
+import random
 import re
 import textwrap
-import aiohttp
 import aiofiles
+import aiohttp
+from PIL import (Image, ImageDraw, ImageEnhance, ImageFilter,
+                 ImageFont, ImageOps)
+from youtubesearchpython.__future__ import VideosSearch
 import numpy as np
-from PIL import (
-    Image,
-    ImageDraw,
-    ImageEnhance,
-    ImageFilter,
-    ImageFont,
-)
-from py_yt import VideosSearch
-# config se YOUTUBE_IMG_URL load ho raha hai
 from config import YOUTUBE_IMG_URL
+
+
+def make_col():
+    return (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+
 
 def changeImageSize(maxWidth, maxHeight, image):
     widthRatio = maxWidth / image.size[0]
     heightRatio = maxHeight / image.size[1]
-    ratio = min(widthRatio, heightRatio)
-    newWidth = int(image.size[0] * ratio)
-    newHeight = int(image.size[1] * ratio)
+    newWidth = int(widthRatio * image.size[0])
+    newHeight = int(heightRatio * image.size[1])
+    newImage = image.resize((newWidth, newHeight))
+    return newImage
+
+def truncate(text):
+    list = text.split(" ")
+    text1 = ""
+    text2 = ""    
+    for i in list:
+        if len(text1) + len(i) < 30:        
+            text1 += " " + i
+        elif len(text2) + len(i) < 30:       
+            text2 += " " + i
+
+    text1 = text1.strip()
+    text2 = text2.strip()     
+    return [text1,text2]
+
+async def get_thumb(videoid):
     try:
-        resample = Image.Resampling.LANCZOS
-    except AttributeError:
-        resample = Image.ANTIALIAS  # For Pillow<10
-    image = image.resize((newWidth, newHeight), resample)
-    return image
+        if os.path.isfile(f"cache/{videoid}.jpg"):
+            return f"cache/{videoid}.jpg"
 
-def get_dominant_color(image):
-    """Extract the dominant color from the image"""
-    image = image.convert('RGB')
-    image = image.resize((50, 50))
-    pixels = np.array(image)
-    pixel_list = pixels.reshape(-1, 3)
-    avg_color = tuple(pixel_list.mean(axis=0).astype(int))
+        url = f"https://www.youtube.com/watch?v={videoid}"
+        if 1==1:
+            results = VideosSearch(url, limit=1)
+            for result in (await results.next())["result"]:
+                try:
+                    title = result["title"]
+                    title = re.sub("\W+", " ", title)
+                    title = title.title()
+                except:
+                    title = "Unsupported Title"
+                try:
+                    duration = result["duration"]
+                except:
+                    duration = "Unknown Mins"
+                thumbnail = result["thumbnails"][0]["url"].split("?")[0]
+                try:
+                    views = result["viewCount"]["short"]
+                except:
+                    views = "Unknown Views"
+                try:
+                    channel = result["channel"]["name"]
+                except:
+                    channel = "Unknown Channel"
 
-    if sum(avg_color) < 200:  # If color is too dark
-        brightened = tuple(min(255, int(c * 1.5)) for c in avg_color)
-        return brightened
-
-    return avg_color
-
-def get_contrasting_color(bg_color):
-    """Get a contrasting color for better visibility"""
-    luminance = (0.299 * bg_color[0] + 0.587 * bg_color[1] + 0.114 * bg_color[2])
-    return (255, 255, 255) if luminance < 128 else (50, 50, 50)
-
-async def gen_thumb(videoid):
-    final_path = f"cache/{videoid}.png"
-    if os.path.isfile(final_path):
-        return final_path
-
-    url = f"https://www.youtube.com/watch?v={videoid}"
-    try:
-        results = VideosSearch(url, limit=1)
-        result_data = await results.next()
-
-        # Default details agar search na mile
-        title = "Unknown Title"
-        duration = "Unknown Duration"
-        views = "Unknown Views"
-        channel = "Unknown Channel"
-
-        if result_data.get("result"):
-            result = result_data["result"][0]
-            title = re.sub(r"\W+", " ", result.get("title", "Unknown Title")).title()
-            duration = result.get("duration", "Unknown Duration")
-            views = result.get("viewCount", {}).get("short", "Unknown Views")
-            channel = result.get("channel", {}).get("name", "Unknown Channel")
-
-        # Ensure cache directory exists
-        os.makedirs("cache", exist_ok=True)
-        
-        thumb_image_path = f"cache/thumb{videoid}.jpg"
-
-        # --- Yahan pehle code se download logic add kiya gaya hai ---
-        try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"http://img.youtube.com/vi/{videoid}/maxresdefault.jpg") as resp:
                     if resp.status == 200:
-                        f = await aiofiles.open(thumb_image_path, mode="wb")
+                        f = await aiofiles.open(
+                            f"cache/thumb{videoid}.jpg", mode="wb"
+                        )
                         await f.write(await resp.read())
                         await f.close()
-                    else:
-                        thumb_image_path = YOUTUBE_IMG_URL
-        except Exception as e:
-            print(f"Failed to download thumbnail: {e}")
-            thumb_image_path = YOUTUBE_IMG_URL
 
-        # Downloaded image ya default config image open karna
-        try:
-            youtube = Image.open(thumb_image_path)
-        except Exception as e:
-            print(f"Error loading custom image: {e}")
-            return YOUTUBE_IMG_URL
+            youtube = Image.open(f"cache/thumb{videoid}.jpg")
+            image1 = changeImageSize(1280, 720, youtube)
+            image2 = image1.convert("RGBA")
+            background = image2.filter(filter=ImageFilter.BoxBlur(30))
+            enhancer = ImageEnhance.Brightness(background)
+            background = enhancer.enhance(0.6)
+            image2 = background
+                                                                                            
+            # ✅ Path changed to AviaxMusic
+            circle = Image.open("AviaxMusic/assets/circle.png")
 
-        # Extract dominant color from the custom image
-        bar_color = get_dominant_color(youtube)
+            # changing circle color
+            im = circle
+            im = im.convert('RGBA')
+            color = make_col()
 
-        image1 = changeImageSize(1280, 720, youtube.copy())
-        center_thumb = changeImageSize(940, 420, youtube.copy())
+            data = np.array(im)
+            red, green, blue, alpha = data.T
 
-        # Rounded center image mask
-        mask = Image.new("L", center_thumb.size, 0)
-        draw_mask = ImageDraw.Draw(mask)
-        draw_mask.rounded_rectangle(
-            [0, 0, center_thumb.size[0], center_thumb.size[1]],
-            radius=40,
-            fill=255
-        )
+            white_areas = (red == 255) & (blue == 255) & (green == 255)
+            data[..., :-1][white_areas.T] = color
 
-        # Background blur (softer)
-        image2 = image1.convert("RGBA")
-        background = image2.filter(ImageFilter.BoxBlur(18))
-        background = ImageEnhance.Brightness(background).enhance(0.8)
+            im2 = Image.fromarray(data)
+            circle = im2
+            # done
 
-        # Paste rounded image
-        thumb_pos = (170, 90)
-        center_thumb_rgba = center_thumb.convert("RGBA")
-        background.paste(center_thumb_rgba, thumb_pos, mask)
+            image3 = image1.crop((280,0,1000,720))
+            lum_img = Image.new('L', [720,720] , 0)
+            draw = ImageDraw.Draw(lum_img)
+            draw.pieslice([(0,0), (720,720)], 0, 360, fill = 255, outline = "white")
+            img_arr = np.array(image3)
+            lum_img_arr = np.array(lum_img)
+            final_img_arr = np.dstack((img_arr,lum_img_arr))
+            image3 = Image.fromarray(final_img_arr)
+            image3 = image3.resize((600,600))
+            
 
-        # Load fonts safely
-        def safe_font(path, size):
-            try:
-                return ImageFont.truetype(path, size)
-            except:
-                return ImageFont.load_default()
+            image2.paste(image3, (50,70), mask = image3)
+            image2.paste(circle, (0,0), mask = circle)
 
-        font = safe_font("AviaxMusic/assets/font.ttf", 30)
-        font2 = safe_font("AviaxMusic/assets/font.ttf", 30)
-        arial = safe_font("AviaxMusic/assets/font2.ttf", 30)
+            # ✅ Fonts path changed to AviaxMusic
+            font1 = ImageFont.truetype('AviaxMusic/assets/font.ttf', 30)
+            font2 = ImageFont.truetype('AviaxMusic/assets/font2.ttf', 70)
+            font3 = ImageFont.truetype('AviaxMusic/assets/font2.ttf', 40)
+            font4 = ImageFont.truetype('AviaxMusic/assets/font2.ttf', 35)
 
-        # Draw text
-        draw = ImageDraw.Draw(background)
+            image4 = ImageDraw.Draw(image2)
+            
+            # ✅ Watermark changed to AVIAX MUSIC
+            image4.text((10, 10), "AVIAX MUSIC", fill="white", font = font1, align ="left") 
+            image4.text((670, 150), "NOW PLAYING", fill="white", font = font2, stroke_width=2, stroke_fill="white", align ="left") 
 
-        # Channel | Views
-        draw.text((50, 565), f"{channel} | {views[:23]}", fill="white", font=arial)
+            # title
+            title1 = truncate(title)
+            image4.text((670, 300), text=title1[0], fill="white", stroke_width=1, stroke_fill="white",font = font3, align ="left") 
+            image4.text((670, 350), text=title1[1], fill="white", stroke_width=1, stroke_fill="white", font = font3, align ="left") 
 
-        # Title
-        title = textwrap.shorten(title, width=50, placeholder="...")
-        draw.text((50, 600), title, fill="white", font=font, stroke_fill="white")
+            # description
+            views = f"Views : {views}"
+            duration = f"Duration : {duration} Mins"
+            channel = f"Channel : {channel}"
 
-        # Start and End Time
-        draw.text((50, 640), "00:25", fill="white", font=font2, stroke_width=1, stroke_fill="grey")
-        draw.text((1150, 640), duration[:23], fill="white", font=font2, stroke_width=1, stroke_fill="white")
-
-        # Duration bar with auto color
-        draw.line((150, 660, 1130, 660), width=6, fill=bar_color)
-
-        # Recreation Music text at right side
-        rec_font = safe_font("OpusV/resources/font.ttf", 40)
-        rec_text = "ThitsarMusic"
-        bbox = draw.textbbox((0, 0), rec_text, font=rec_font)
-        rec_text_w = bbox[2] - bbox[0]
-        rec_text_h = bbox[3] - bbox[1]
-        rec_x = thumb_pos[0] + center_thumb.width + 25
-        rec_y = thumb_pos[1] + (center_thumb.height // 2) - (rec_text_h // 2)
-        draw.text((rec_x, rec_y), rec_text, fill="white", font=rec_font)
-
-        # Save final image
-        background.save(final_path, format="PNG")
-        return final_path
-
+            image4.text((670, 450), text=views, fill="white", font = font4, align ="left") 
+            image4.text((670, 500), text=duration, fill="white", font = font4, align ="left") 
+            image4.text((670, 550), text=channel, fill="white", font = font4, align ="left")
+            
+            image2 = ImageOps.expand(image2,border=20,fill=make_col())
+            image2 = image2.convert('RGB')
+            image2.save(f"cache/{videoid}.jpg")
+            file = f"cache/{videoid}.jpg"
+            return file
     except Exception as e:
-        print(f"Error in gen_thumb: {e}")
+        print(e)
         return YOUTUBE_IMG_URL
