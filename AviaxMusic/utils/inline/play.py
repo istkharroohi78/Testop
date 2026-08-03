@@ -64,7 +64,7 @@ def stream_markup_timer(_, chat_id, played, dur):
             ),
         ],
         [
-            InlineKeyboardButton(
+            #InlineKeyboardButton(
                 text="🎁 Get Rewards", url=f"https://t.me/{app.username}?startgroup=true",
             ),
             InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")
